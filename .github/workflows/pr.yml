@@ -1,0 +1,41 @@
+name: PR - Build and Test
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (full history for affected)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          server-id: github
+          server-username: GH_REGISTRY_TOKEN_USERNAME
+          server-password: GH_REGISTRY_TOKEN
+
+      - name: Build and test
+        env:
+          NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_PR_SECRET }}
+          GH_REGISTRY_TOKEN: ${{ secrets.GH_REGISTRY_TOKEN }}
+          GH_REGISTRY_TOKEN_USERNAME: ${{ secrets.GH_REGISTRY_TOKEN_USERNAME }}
+        run: ./nx affected --target=verify --base=${{ github.event.pull_request.base.sha }} --head=${{ github.event.pull_request.head.sha }} -ntp 
